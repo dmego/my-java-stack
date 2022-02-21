@@ -176,6 +176,7 @@ public class LinkedHashMap<K,V>
 
     /**
      * HashMap.Node subclass for normal LinkedHashMap entries.
+     * 继承自 HashMap, 添加了 前置 和 后置 指针，用于实现双向链表
      */
     static class Entry<K,V> extends Node<K,V> {
         Entry<K,V> before, after;
@@ -188,18 +189,21 @@ public class LinkedHashMap<K,V>
 
     /**
      * The head (eldest) of the doubly linked list.
+     * 双向链表头指针
      */
     transient Entry<K,V> head;
 
     /**
      * The tail (youngest) of the doubly linked list.
+     * 双向链表尾指针
      */
     transient Entry<K,V> tail;
 
     /**
      * The iteration ordering method for this linked hash map: <tt>true</tt>
      * for access-order, <tt>false</tt> for insertion-order.
-     *
+     * false: 按照插入顺序排序
+     * true: 按照访问顺序排序
      * @serial
      */
     final boolean accessOrder;
@@ -282,10 +286,12 @@ public class LinkedHashMap<K,V>
             a.before = b;
     }
 
+    // 节点插入之后的操作：移除最老的节点，也就是链表的头节点
     void afterNodeInsertion(boolean evict) { // possibly remove eldest
         Entry<K,V> first;
         if (evict && (first = head) != null && removeEldestEntry(first)) {
             K key = first.key;
+            // 删除链表的头结点
             removeNode(hash(key), key, null, false, true);
         }
     }
