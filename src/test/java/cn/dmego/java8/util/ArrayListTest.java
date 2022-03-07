@@ -3,6 +3,7 @@ package cn.dmego.java8.util;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -14,6 +15,7 @@ public class ArrayListTest {
     @Test
     public void test_arrayList() {
         List<String> list = new ArrayList<>(10);
+        list.add("0");
         list.add(2, "1");
         System.out.println(list.get(2));
         System.out.println(list.get(0));
@@ -23,10 +25,10 @@ public class ArrayListTest {
     public void test_init_arrayList() {
         List<String> list1 = new ArrayList<>();
         list1.add("1");
-//        ArrayList<String> list2 = new ArrayList<String>() {
-//            add("1");
-//            add("2");
-//        };
+        ArrayList<String> list2 = new ArrayList<String>() {{
+            add("1");
+            add("2");
+        }};
         List<String> list3 = new ArrayList<>(Arrays.asList("1","2"));
     }
 
@@ -59,6 +61,36 @@ public class ArrayListTest {
 
         System.out.println(list.get("a".hashCode() & ( 8 - 1)));
 
+    }
+
+
+    @Test
+    public void test_remove_fast_fail() {
+        List<String> list = new ArrayList<>(Arrays.asList("1", "2", "3", "4", "5"));
+        Iterator<String> iterator = list.iterator();
+        while (iterator.hasNext()) {
+            String next = iterator.next();
+            System.out.print(next+", ");
+            if (next.equals("4")) {
+                list.remove(4);
+            }
+        }
+    }
+
+    @Test
+    public void test_new_arrayList_collection() {
+
+        Object[] array1 = Arrays.asList(1, 2, 3).toArray();
+        System.out.println(array1.getClass());
+        System.out.println(Integer[].class == array1.getClass());
+    }
+
+    @Test
+    public void test_array_copy() {
+        Long[] array1 = new Long[]{1L, 2L, 3L};
+        Object[] array2 = new Object[5];
+        System.arraycopy(array1, 0, array2, 0, 3);
+        System.out.println(Arrays.toString(array2)); // [1, 2, 3, null, null]
     }
 
 

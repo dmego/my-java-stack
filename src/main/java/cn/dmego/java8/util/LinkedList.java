@@ -941,18 +941,23 @@ public class LinkedList<E>
      * @see List#listIterator(int)
      */
     public ListIterator<E> listIterator(int index) {
+        // 检查位置下标，当 LinkedList 使用迭代器时，index 值是 0，也就是从 头 开始迭代
         checkPositionIndex(index);
         return new ListItr(index);
     }
 
     private class ListItr implements ListIterator<E> {
+        // 上一个迭代的元素
         private Node<E> lastReturned;
+        // 下一个迭代的元素
         private Node<E> next;
+        // 下一个要迭代元素的下标
         private int nextIndex;
         private int expectedModCount = modCount;
 
         ListItr(int index) {
             // assert isPositionIndex(index);
+            // 初始化时，指定 next 指向头元素
             next = (index == size) ? null : node(index);
             nextIndex = index;
         }
@@ -967,6 +972,7 @@ public class LinkedList<E>
                 throw new NoSuchElementException();
 
             lastReturned = next;
+            // 迭代时，按照链表顺序，一个节点一个节点遍历
             next = next.next;
             nextIndex++;
             return lastReturned.item;
@@ -976,6 +982,7 @@ public class LinkedList<E>
             return nextIndex > 0;
         }
 
+        // 前置迭代，从后往前遍历
         public E previous() {
             checkForComodification();
             if (!hasPrevious())
@@ -994,12 +1001,16 @@ public class LinkedList<E>
             return nextIndex - 1;
         }
 
+        // 迭代时删除一个元素
         public void remove() {
             checkForComodification();
+            // lastReturned 就是要删除的元素
             if (lastReturned == null)
                 throw new IllegalStateException();
 
+            // 先保存要删除的元素的下一个元素
             Node<E> lastNext = lastReturned.next;
+            // 删除元素
             unlink(lastReturned);
             if (next == lastReturned)
                 next = lastNext;
