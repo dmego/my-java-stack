@@ -410,6 +410,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     static final int tableSizeFor(int cap) {
         int n = cap - 1;
+        // 把 n 的二进制各位上都填上 1， 因为与运算同时为 0 才为 0，否则为 1，所以最后所有位都是 1（这就是一个标准的2的倍数减一）， 最后+1
         n |= n >>> 1;
         n |= n >>> 2;
         n |= n >>> 4;
@@ -454,7 +455,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The next size value at which to resize (capacity * load factor).
-     * 容量阈值，也就是下一次需要扩容的容量大小(容量 * 负载因子)
+     * 扩容阈值，也就是下一次需要扩容的容量大小(容量 * 负载因子)
      * @serial
      */
     // (The javadoc description is true upon serialization.
@@ -492,7 +493,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             throw new IllegalArgumentException("Illegal load factor: " +
                     loadFactor);
         this.loadFactor = loadFactor;
-        // 如果指定了初始化容量，使用 threshold 变量暂时保存标准初始化容量(2的次幂)
+        // 如果指定了初始化容量 init ，计算出与 init 最近的 2 的次幂数作为 真正的初始化容量
+        // 使用 threshold 变量暂时保存 真正的初始化容量
         this.threshold = tableSizeFor(initialCapacity);
     }
 
@@ -539,6 +541,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final void putMapEntries(Map<? extends K, ? extends V> m, boolean evict) {
         int s = m.size();
         if (s > 0) {
+            // 如果当前 Map 的hash table 为 null, 说明还未初始化，先初始化容量阈值
             if (table == null) { // pre-size
                 float ft = ((float)s / loadFactor) + 1.0F;
                 int t = ((ft < (float)MAXIMUM_CAPACITY) ?
@@ -546,8 +549,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 if (t > threshold)
                     threshold = tableSizeFor(t);
             }
+            // 如果要添加的元素个数 > 容量阈值，则进行扩容操作
             else if (s > threshold)
                 resize();
+            // 遍历要添加的元素，将其添加到当前 Map 中来
             for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
                 K key = e.getKey();
                 V value = e.getValue();
@@ -609,7 +614,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         if ((tab = table) != null && (n = tab.length) > 0 &&
                 // 计算该 hash 在 hash table 中的下标，并取出该下标下的链表的头结点 first
                 (first = tab[(n - 1) & hash]) != null) {
-            // 如果是链表的第一个节点，直接返回
+            // 如果是链表的第一个节点(hash 值相等并且 key 相等)，直接返回
             if (first.hash == hash && // always check first node
                     ((k = first.key) == key || (key != null && key.equals(k))))
                 return first;
@@ -673,7 +678,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         // 判断 table 是否为 空，是则进行容量初始化操作(扩容)
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
-        // (n - 1) & hash: 根据 hash 值计算 key 在 table 中的下标 i ，如果 tab[i] 处没有元素
+        // 先根据 hash 值计算 key 在 table 中的下标 i ((n - 1) & hash), 如果 tab[i] 处没有元素
         if ((p = tab[i = (n - 1) & hash]) == null)
             // new 一个新 Node 放到 tab[i]
             tab[i] = newNode(hash, key, value, null);
@@ -684,7 +689,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             // 如果 p(也就是 tab[i]) 的 hash 值，key 值都与当前要插入的(key,value)相同，说明是同一个元素，后续更新 value 即可
             if (p.hash == hash &&
                     ((k = p.key) == key || (key != null && key.equals(k))))
-                // 将 e 指向 p
+                // 将 p 赋值给当前要更新记录 e
                 e = p;
             // 如果 p 是 TreeNode，说明此时链表已经转换为了红黑树
             else if (p instanceof TreeNode)
@@ -707,7 +712,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     if (e.hash == hash &&
                             ((k = e.key) == key || (key != null && key.equals(k))))
                         break;
-                    // p 指向 e (相当于 p = p.next)
+                    // p 指向 e (相当于 p = p.next), 继续循环遍历
                     p = e;
                 }
             }
@@ -722,6 +727,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 return oldValue;
             }
         }
+        // (走到这里说明是 e == null, 新增了一个节点)
         // 操作数+1
         ++modCount;
         // ++size map 的大小 +1，如果 size > 阈值，则进行扩容操作
@@ -748,18 +754,18 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         Node<K,V>[] oldTab = table;
         // oldCap 表示 old hash table 长度
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
-        // oldThr 表示 old 阈值
+        // oldThr 表示 old 容量阈值
         int oldThr = threshold;
         int newCap, newThr = 0;
         // 如果 oldCap > 0，说明 table 已完成初始化
         if (oldCap > 0) {
             // 如果 oldCap >= 容量最大值，不允许再扩容
             if (oldCap >= MAXIMUM_CAPACITY) {
-                // 阈值等于 int 最大值
+                // 扩容阈值等于 int 最大值
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
             }
-            // newCap = oldCap * 2; 扩容 2 倍
+            // 否则进行扩容：newCap = oldCap * 2; 扩容 2 倍
             else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                     oldCap >= DEFAULT_INITIAL_CAPACITY)
                 // 阈值 扩容 2 倍
@@ -776,6 +782,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
         }
         // 如果扩容后的阈值 = 0(还没计算)，根据 负载因子 * 容量 计算阈值
+        // 只有一种情况：就是创建时指定了初始容量 initCapacity
         if (newThr == 0) {
             float ft = (float)newCap * loadFactor;
             newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
@@ -912,13 +919,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @param key the key
      * @param value the value to match if matchValue, else ignored
      * @param matchValue if true only remove if value is equal 如果是 true 则只有在 value 相等时，才删除元素
-     * @param movable if false do not move other nodes while removing 如果是 false, 则在删除元素后，不移动其他 Node
+     * @param movable if false do not move other nodes while removing 如果是 true, 则在删除元素后，需要修复红黑树的自平衡
      * @return the node, or null if none
      */
     final Node<K,V> removeNode(int hash, Object key, Object value,
                                                  boolean matchValue, boolean movable) {
         Node<K,V>[] tab; Node<K,V> p; int n, index;
-        // 只有 table 不为空时 并且 tab size > 0 并且 通过 hash 计算的 tab下标位置的元素(p) ！= null, 才继续查找并删除，否则 返回 null
+        // 只有 table 不为空时 并且 tab size > 0 并且 通过 hash 计算的 tab下标位置的元素(p) != null, 才继续查找并删除，否则 返回 null
         if ((tab = table) != null && (n = tab.length) > 0 &&
                 (p = tab[index = (n - 1) & hash]) != null) {
             // node 记录需要被删除节点 Node
@@ -927,13 +934,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             if (p.hash == hash &&
                     ((k = p.key) == key || (key != null && key.equals(k))))
                 node = p;
-            // e 是 p 的下一个节点
+            // 如果 p.next 不为 null, 根据节点是类型来找到节点并删除
             else if ((e = p.next) != null) {
                 // 如果节点是树节点，调用红黑树的查找方法，找到节点
                 if (p instanceof TreeNode)
                     node = ((TreeNode<K,V>)p).getTreeNode(hash, key);
                 else {
-                    // do while 遍历链表，找到节点
+                    //否则 do while 遍历链表，找到节点
                     do {
                         if (e.hash == hash &&
                                 ((k = e.key) == key ||
@@ -947,7 +954,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     } while ((e = e.next) != null);
                 }
             }
-            // 如果找到的节点 node 不为 null, 并且 (设置了不检查value是否相等 或者 value 是相等的)，才做删除操作
+            // 如果找到的节点 node 不为 null, 并且 (设置了不检查 value 是否相等(matchValue = false) 或者 value 是相等的)，才做删除操作
             if (node != null && (!matchValue || (v = node.value) == value ||
                     (value != null && value.equals(v)))) {
                 // 如果 node 是树节点，调用红黑树的删除节点操作
@@ -1541,47 +1548,70 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     // iterators
 
     abstract class HashIterator {
+        // 下一个链表节点
         Node<K,V> next;        // next entry to return
+        // 当前链表节点
         Node<K,V> current;     // current entry
+        // 期待的操作数值，用于快速失败(fast-fail)
         int expectedModCount;  // for fast-fail
+        // 当前链表节点的位置下标
         int index;             // current slot
 
         HashIterator() {
+            // 创建时将当前 modCount 赋值给 expectedModCount
             expectedModCount = modCount;
             Node<K,V>[] t = table;
             current = next = null;
             index = 0;
+            // 从 0 开始，do while 循环遍历 table, 找个 table 中第一个不为 null 的槽，取出赋值给 next
             if (t != null && size > 0) { // advance to first entry
                 do {} while (index < t.length && (next = t[index++]) == null);
             }
         }
 
+        // 判断是否还有节点可供遍历
         public final boolean hasNext() {
             return next != null;
         }
 
+        // 返回遍历到的当前节点
         final Node<K,V> nextNode() {
             Node<K,V>[] t;
             Node<K,V> e = next;
+            // 如果当前 modCount 不等于 expectedModCount，抛出异常，快速失败
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
+            // 当前元素不存在，为 null, 抛出异常
             if (e == null)
                 throw new NoSuchElementException();
+            /*
+             1. current = e: 当前遍历的节点 current 指向 e
+             2. next = e.next: 更新 next 为链表节点 e 的下一个节点
+             3. 当 next == null 时，说明当前 index 下的一条链表已经遍历完，需要重新遍历 table，找到下一个不为 null 的槽
+             */
             if ((next = (current = e).next) == null && (t = table) != null) {
+                // 从 上一次遍历的下标 index 开始，do while 循环遍历 table, 找个 table 中第一个不为 null 的槽，取出赋值给 next
                 do {} while (index < t.length && (next = t[index++]) == null);
             }
+            // 返回 e, 也就是遍历到的当前节点
             return e;
         }
 
+        // 删除当前遍历到的节点
         public final void remove() {
+            // p 执行当前遍历到的节点 current
             Node<K,V> p = current;
+            // p = null 时抛出异常
             if (p == null)
                 throw new IllegalStateException();
+            // 快速失败判断
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
             current = null;
             K key = p.key;
+            //根据节点的 key, 调用 removeNode 方法进行删除
             removeNode(hash(key), key, null, false, false);
+            // 删除元素后，modCount 会变，所以同步更新 expectedModCount 的值
             expectedModCount = modCount;
         }
     }

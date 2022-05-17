@@ -70,7 +70,7 @@ public class ArrayListTest {
         Iterator<String> iterator = list.iterator();
         while (iterator.hasNext()) {
             String next = iterator.next();
-            System.out.print(next+", ");
+            System.out.print(next + ", ");
             if (next.equals("4")) {
                 list.remove(4);
             }
