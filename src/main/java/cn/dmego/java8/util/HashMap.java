@@ -723,6 +723,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 if (!onlyIfAbsent || oldValue == null)
                     // 更新 value 值
                     e.value = value;
+                // 节点访问后的操作
                 afterNodeAccess(e);
                 return oldValue;
             }
@@ -733,6 +734,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         // ++size map 的大小 +1，如果 size > 阈值，则进行扩容操作
         if (++size > threshold)
             resize();
+        // 节点插入后的操作
         afterNodeInsertion(evict);
         return null;
     }

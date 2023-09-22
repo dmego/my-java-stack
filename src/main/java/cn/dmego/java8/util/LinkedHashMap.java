@@ -210,7 +210,7 @@ public class LinkedHashMap<K,V>
 
     // internal utilities
 
-    // link at the end of list
+    // link at the end of list 链接到链表尾部
     private void linkNodeLast(Entry<K,V> p) {
         Entry<K,V> last = tail;
         tail = p;
@@ -238,12 +238,13 @@ public class LinkedHashMap<K,V>
     }
 
     // overrides of HashMap hook methods
-
+    // 重新初始化为默认值
     void reinitialize() {
         super.reinitialize();
         head = tail = null;
     }
 
+    // 新建一个 Node，链接到链表的尾部
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
         Entry<K,V> p =
                 new Entry<K,V>(hash, key, value, e);
@@ -259,6 +260,7 @@ public class LinkedHashMap<K,V>
         return t;
     }
 
+    // 新建一个 TreeNode，链接到链表尾部
     TreeNode<K,V> newTreeNode(int hash, K key, V value, Node<K,V> next) {
         TreeNode<K,V> p = new TreeNode<K,V>(hash, key, value, next);
         linkNodeLast(p);
@@ -272,6 +274,7 @@ public class LinkedHashMap<K,V>
         return t;
     }
 
+    // Node 被删除之后的操作：将 Node 从链表中删除
     void afterNodeRemoval(Node<K,V> e) { // unlink
         Entry<K,V> p =
                 (Entry<K,V>)e, b = p.before, a = p.after;
@@ -286,9 +289,10 @@ public class LinkedHashMap<K,V>
             a.before = b;
     }
 
-    // 节点插入之后的操作：移除最老的节点，也就是链表的头节点
+    // 节点插入之后的操作：当 evict = true 时，移除最老的节点，也就是链表的头节点
     void afterNodeInsertion(boolean evict) { // possibly remove eldest
         Entry<K,V> first;
+        // 当 removeEldestEntry() 条件成立时，删除链表中最老的元素，也就是 head 节点 (可以用来实现 LRU)
         if (evict && (first = head) != null && removeEldestEntry(first)) {
             K key = first.key;
             // 删除链表的头结点
@@ -296,12 +300,14 @@ public class LinkedHashMap<K,V>
         }
     }
 
+    // 节点被访问之后的操作：当 accessOrder = true 时，说明是按访问排序，需要将被访问的节点移动到链表最前面 (tail 指向)
     void afterNodeAccess(Node<K,V> e) { // move node to last
         Entry<K,V> last;
         if (accessOrder && (last = tail) != e) {
             Entry<K,V> p =
                     (Entry<K,V>)e, b = p.before, a = p.after;
             p.after = null;
+            // 先删除节点 p
             if (b == null)
                 head = a;
             else
@@ -310,13 +316,16 @@ public class LinkedHashMap<K,V>
                 a.before = b;
             else
                 last = b;
+            // 将节点 p 链接到 last 之后
             if (last == null)
                 head = p;
             else {
                 p.before = last;
                 last.after = p;
             }
+            // tail 指向节点 p
             tail = p;
+            // 操作数 + 1
             ++modCount;
         }
     }
@@ -339,6 +348,7 @@ public class LinkedHashMap<K,V>
      */
     public LinkedHashMap(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
+        // 默认按插入顺序排序
         accessOrder = false;
     }
 
@@ -406,6 +416,7 @@ public class LinkedHashMap<K,V>
      *         specified value
      */
     public boolean containsValue(Object value) {
+        // 从链表头 head 开始遍历，判断是否存在 Node.value = value
         for (Entry<K,V> e = head; e != null; e = e.after) {
             V v = e.value;
             if (v == value || (value != null && value.equals(v)))
@@ -431,9 +442,11 @@ public class LinkedHashMap<K,V>
      */
     public V get(Object key) {
         Node<K,V> e;
+        // 调用 HashMap 的 getNode 方法，获取 Node
         if ((e = getNode(hash(key), key)) == null)
             return null;
         if (accessOrder)
+            // 如果按访问进行排序，执行节点访问之后的回调操作
             afterNodeAccess(e);
         return e.value;
     }
@@ -698,6 +711,7 @@ public class LinkedHashMap<K,V>
         int expectedModCount;
 
         LinkedHashIterator() {
+            // 初始化时，next 指向 head 节点，表示从头开始遍历
             next = head;
             expectedModCount = modCount;
             current = null;
@@ -714,6 +728,7 @@ public class LinkedHashMap<K,V>
             if (e == null)
                 throw new NoSuchElementException();
             current = e;
+            // next 指向 next.after, 链表从前往后遍历
             next = e.after;
             return e;
         }
